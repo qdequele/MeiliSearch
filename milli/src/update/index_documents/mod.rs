@@ -376,7 +376,7 @@ where
     }
 
     #[tracing::instrument(
-        level = "trace"
+        level = "debug"
         skip_all,
         target = "indexing::documents",
         name = "index_documents"
@@ -400,7 +400,7 @@ where
 
     /// Returns the total number of documents in the index after the update.
     #[tracing::instrument(
-        level = "trace",
+        level = "debug",
         skip_all,
         target = "indexing::details",
         name = "index_documents_raw"
@@ -511,6 +511,7 @@ where
         let current_span = tracing::Span::current();
 
         // Run extraction pipeline in parallel.
+        tracing::debug!("Starting Grenad extraction pipeline");
         pool.install(|| {
             let settings_diff_cloned = settings_diff.clone();
             rayon::spawn(move || {
@@ -670,7 +671,7 @@ where
 
             Ok(())
         }).map_err(InternalError::from)??;
-
+        tracing::debug!("Finished Grenad extraction pipeline");
         // We write the field distribution into the main database
         self.index.put_field_distribution(self.wtxn, &field_distribution)?;
 
@@ -679,6 +680,7 @@ where
         let number_of_documents = self.index.number_of_documents(self.wtxn)?;
         let mut rng = rand::rngs::StdRng::seed_from_u64(42);
 
+        tracing::debug!("Building vector arroy");
         for (embedder_name, dimension) in dimension {
             let wtxn = &mut *self.wtxn;
             let vector_arroy = self.index.vector_arroy;
@@ -700,6 +702,7 @@ where
             })
             .map_err(InternalError::from)??;
         }
+        tracing::debug!("Finished building vector arroy");
 
         self.execute_prefix_databases(
             word_docids.map(MergerBuilder::build),
@@ -708,11 +711,12 @@ where
             word_fid_docids.map(MergerBuilder::build),
         )?;
 
+        tracing::debug!("index_documents_raw complete!");
         Ok(number_of_documents)
     }
 
     #[tracing::instrument(
-        level = "trace",
+        level = "debug",
         skip_all,
         target = "indexing::prefix",
         name = "index_documents_prefix_databases"
@@ -887,7 +891,7 @@ where
             databases_seen,
             total_databases: TOTAL_POSTING_DATABASE_COUNT,
         });
-
+        tracing::debug!("index_documents_prefix_databases complete!");
         Ok(())
     }
 }
@@ -895,7 +899,7 @@ where
 /// Run the word prefix docids update operation.
 #[allow(clippy::too_many_arguments)]
 #[tracing::instrument(
-    level = "trace",
+    level = "debug",
     skip_all,
     target = "indexing::prefix",
     name = "index_documents_word_prefix_docids"
@@ -916,6 +920,7 @@ fn execute_word_prefix_docids(
     builder.max_nb_chunks = indexer_config.max_nb_chunks;
     builder.max_memory = indexer_config.max_memory;
     builder.execute(merger, new_prefix_fst_words, common_prefix_fst_words, del_prefix_fst_words)?;
+    tracing::debug!("index_documents_word_prefix_docids complete!");
     Ok(())
 }
 

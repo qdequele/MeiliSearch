@@ -652,7 +652,7 @@ impl IndexScheduler {
     /// The list of tasks that were processed. The metadata of each task in the returned
     /// list is updated accordingly, with the exception of the its date fields
     /// [`finished_at`](meilisearch_types::tasks::Task::finished_at) and [`started_at`](meilisearch_types::tasks::Task::started_at).
-    #[tracing::instrument(level = "trace", skip(self, batch), target = "indexing::scheduler", fields(batch=batch.to_string()))]
+    #[tracing::instrument(level = "debug", skip(self, batch), target = "indexing::scheduler", fields(batch=batch.to_string()))]
     pub(crate) fn process_batch(&self, batch: Batch) -> Result<Vec<Task>> {
         #[cfg(test)]
         {
@@ -1324,7 +1324,7 @@ impl IndexScheduler {
                     index,
                     indexer_config,
                     config,
-                    |indexing_step| tracing::trace!(?indexing_step, "Update"),
+                    |indexing_step| tracing::debug!(?indexing_step, "Update"),
                     || must_stop_processing.get(),
                 )?;
 
